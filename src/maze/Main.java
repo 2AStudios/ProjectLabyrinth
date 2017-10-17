@@ -1,23 +1,26 @@
 package maze;
 
+import javafx.animation.AnimationTimer;
 import javafx.animation.RotateTransition;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.paint.Material;
+import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import javafx.scene.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
-import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
 import javafx.scene.transform.Rotate;
 import javafx.event.EventHandler;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
 
 import java.io.BufferedReader;
@@ -27,7 +30,14 @@ import java.util.Arrays;
 
 public class Main extends Application {
 
-    final Group root = new Group();
+    Button btnscene2d,btnscene3d;
+    Label lblscene2d;
+    FlowPane panel2d;
+    Scene sceneMain,scene2d, scene3d;
+    Stage mainstage;
+    //3D Scene
+    final Group root3d = new Group();
+    final Group root2d = new Group();
     final Xform axisGroup = new Xform();
     final Xform mazeGroup = new Xform();
     final Xform world = new Xform();
@@ -43,13 +53,15 @@ public class Main extends Application {
     private static final double CAMERA_FAR_CLIP = 10000.0;
     private static final double AXIS_LENGTH = 250.0;
 
-    private static String fileText = Main.readFile("res/mazeProgramData.txt");
+    private static String fileText = Main.readFile("res/maze16.txt");
     private static String[] indexList = fileText.split("\r\n");
     private static char[][] mazeList = new char[indexList[0].length()][indexList.length];
     private static int characterX = 0;
     private static int characterY = 0;
     private static int characterR = 0;
     private static boolean inAnimation = false;
+
+
     /*private static final double CONTROL_MULTIPLIER = 0.1;
     private static final double SHIFT_MULTIPLIER = 10.0;
     private static final double MOUSE_SPEED = 0.1;
@@ -64,11 +76,11 @@ public class Main extends Application {
     double mouseDeltaY;*/
 
     //   private void buildScene() {
-    //       root.getChildren().add(world);
+    //       root3d.getChildren().add(world);
     //   }
     private void buildCamera() {
         System.out.println("buildCamera()");
-        root.getChildren().add(cameraXform);
+        root3d.getChildren().add(cameraXform);
         cameraXform.getChildren().add(cameraXform2);
         cameraXform2.getChildren().add(cameraXform3);
         cameraXform3.getChildren().add(camera);
@@ -92,7 +104,7 @@ public class Main extends Application {
         cameraXform.rx.setAngle(CAMERA_INITIAL_Z_ANGLE);
     }
 
-    /*private void handleMouse(Scene scene, final Node root) {
+    /*private void handleMouse(Scene scene, final Node root3d) {
         scene.setOnMousePressed(new EventHandler<MouseEvent>() {
             @Override public void handle(MouseEvent me) {
                 mousePosX = me.getSceneX();
@@ -279,33 +291,99 @@ public class Main extends Application {
         world.getChildren().addAll(mazeGroup);
     }
 
+    public void buildMaze2d(){
+        int blocksize = (int)(768/indexList.length)-1;
+        Canvas canvas = new Canvas( indexList[0].length()*blocksize, indexList.length*blocksize );
+        //System.out.println(Arrays.deepToString(indexList));
+        System.out.println(indexList[0].length());
+        System.out.println(indexList.length);
+        root2d.getChildren().add(canvas);
+
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        Image brick = new Image(new File("res/brick2d.png").toURI().toString());
+        Image cobblestone = new Image(new File("res/cobble2d.png").toURI().toString());
+        final long startNanoTime = System.nanoTime();
+
+        new AnimationTimer()
+        {
+            public void handle(long currentNanoTime)
+            {
+                double t = (currentNanoTime - startNanoTime) / 1000000000.0;
+
+                // background image clears canvas
+                for(int i = 0;i<indexList[0].length();i++){
+                    for(int j = 0;j<indexList.length;j++){
+                        if(mazeList[i][j] == '*') {
+                            gc.drawImage(brick,i*blocksize,j*blocksize,blocksize,blocksize);
+                        }else{
+                            gc.drawImage(cobblestone,i*blocksize,j*blocksize,blocksize,blocksize);
+                        }
+                        if(mazeList[i][j] == '$') {
+                            gc.setFill(Color.RED);
+                            gc.fillOval(i*blocksize, j*blocksize, blocksize, blocksize);
+                        }
+                    }
+                }
+            }
+        }.start();
+    }
+
     @Override
     public void start(Stage primaryStage) {
         System.out.println("start()");
+        mainstage = primaryStage;
         //Load Data
         for (int i=0; i<indexList.length;i++) {
             mazeList[i] = indexList[i].toCharArray();
         }
 
-        root.getChildren().add(world);
-        root.setDepthTest(DepthTest.ENABLE);
+        root3d.getChildren().add(world);
+        root3d.setDepthTest(DepthTest.ENABLE);
 
         // buildScene();
         buildCamera();
         //buildAxes();
         buildMaze();
 
-        Scene scene = new Scene(root, 1024, 768, true);
-        scene.setFill(Color.GREY);
-        handleKeyboard(scene, world);
+        scene3d = new Scene(root3d, 1024, 768, true);
+        scene3d.setFill(Color.GREY);
+        handleKeyboard(scene3d, world);
+
+        scene2d = new Scene(root2d);
+        buildMaze2d();
+
+
         //handleMouse(scene, world);
 
+        //make things to put on panes
+        btnscene2d=new Button("Maze 2D");
+        btnscene3d=new Button("Maze 3D");
+        btnscene2d.setOnAction(e-> ButtonClicked(e));
+        btnscene3d.setOnAction(e-> ButtonClicked(e));
+        lblscene2d=new Label("Maze Select");
+        panel2d=new FlowPane();
+        panel2d.setVgap(10);
+        panel2d.setStyle("-fx-background-color: tan;-fx-padding: 10px;");
+        panel2d.getChildren().addAll(lblscene2d, btnscene2d,btnscene3d);
+        //make 2 scenes from 2 panes
+        sceneMain = new Scene(panel2d, 128, 128);
+
         primaryStage.setTitle("Maze3D Application");
-        primaryStage.setScene(scene);
+        primaryStage.setScene(sceneMain);
         primaryStage.show();
 
-        scene.setCamera(camera);
+        scene3d.setCamera(camera);
     }
+
+    public void ButtonClicked(ActionEvent e)
+    {
+        if (e.getSource()==btnscene3d)
+            mainstage.setScene(scene3d);
+        if (e.getSource()==btnscene2d)
+            mainstage.setScene(scene2d);
+    }
+
     public static void main(String[] args) {
         launch(args);
     }
