@@ -301,8 +301,14 @@ public class Main extends Application {
 
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        Image brick = new Image(new File("res/brick2d.png").toURI().toString());
-        Image cobblestone = new Image(new File("res/cobble2d.png").toURI().toString());
+        Image brick = new Image(new File("res/prock.png").toURI().toString());
+        Image cobblestone = new Image(new File("res/pground.png").toURI().toString());
+        Image[] playerSprite = new Image[4];
+        playerSprite[0] = new Image(new File("res/player0.png").toURI().toString());
+        playerSprite[1] = new Image(new File("res/player1.png").toURI().toString());
+        playerSprite[2] = new Image(new File("res/player2.png").toURI().toString());
+        playerSprite[3] = new Image(new File("res/player3.png").toURI().toString());
+
         final long startNanoTime = System.nanoTime();
 
         new AnimationTimer()
@@ -325,6 +331,14 @@ public class Main extends Application {
                         }
                     }
                 }
+
+                switch (characterR){
+                    case 0: gc.drawImage(playerSprite[0],characterY*blocksize,characterX*blocksize-25); break;
+                    case 90: gc.drawImage(playerSprite[3],characterY*blocksize,characterX*blocksize-25); break;
+                    case 180: gc.drawImage(playerSprite[2],characterY*blocksize,characterX*blocksize-25); break;
+                    case 270: gc.drawImage(playerSprite[1],characterY*blocksize,characterX*blocksize-25); break;
+                }
+
             }
         }.start();
     }
@@ -351,6 +365,7 @@ public class Main extends Application {
         handleKeyboard(scene3d, world);
 
         scene2d = new Scene(root2d);
+        handleKeyboard(scene2d,world);
         buildMaze2d();
 
 
@@ -369,7 +384,7 @@ public class Main extends Application {
         //make 2 scenes from 2 panes
         sceneMain = new Scene(panel2d, 128, 128);
 
-        primaryStage.setTitle("Maze3D Application");
+        primaryStage.setTitle("Maze Application");
         primaryStage.setScene(sceneMain);
         primaryStage.show();
 
