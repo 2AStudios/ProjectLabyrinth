@@ -11,7 +11,11 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.scene.*;
 import javafx.scene.paint.Color;
@@ -35,6 +39,7 @@ public class Main extends Application {
     FlowPane panel2d;
     Scene sceneMain,scene2d, scene3d;
     Stage mainstage;
+    Label moveCounter;
     //3D Scene
     final Group root3d = new Group();
     final Group root2d = new Group();
@@ -56,9 +61,12 @@ public class Main extends Application {
     private static String fileText = Main.readFile("res/maze16.txt");
     private static String[] indexList = fileText.split("\r\n");
     private static char[][] mazeList = new char[indexList[0].length()][indexList.length];
+    private static PhongMaterial wallMaterial= new PhongMaterial();
     private static int characterX = 0;
     private static int characterY = 0;
     private static int characterR = 0;
+    private static int moveCount = 0;
+    private static boolean resetGame = false;
     private static boolean inAnimation = false;
 
 
@@ -151,11 +159,17 @@ public class Main extends Application {
         scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent event) {
-                if(!inAnimation)
+                if(!inAnimation && !resetGame)
                 switch (event.getCode()) {
                     case W:
-                        if(mazeList[characterY+1][characterX] == '$')
+                        if(mazeList[characterY+1][characterX] == '$') {
                             System.out.println("Win Maze.");
+                            resetGame = true;
+                            if(moveCount < (mazeList.length*mazeList[0].length)/3)
+                                moveCounter.setText("Great Job!\nMoves: " + moveCount);
+                            else
+                                moveCounter.setText("Great Perseverance!\nMoves: " + moveCount);
+                        }
                         switch (characterR){
                             case 0: if(mazeList[characterY+1][characterX] == ' ') translateByY(10,camera); break;
                             case 90: if(mazeList[characterY][characterX+1] == ' ') translateByX(10,camera); break;
@@ -176,8 +190,24 @@ public class Main extends Application {
                         break;
                     case D:
                         rotateCamera(90,camera);
-
                         break;
+                    case B:{
+                        final PhongMaterial bcMaterial = new PhongMaterial();
+                        bcMaterial.setDiffuseColor(Color.SANDYBROWN);
+                        bcMaterial.setSpecularColor(Color.SANDYBROWN);
+                        Box mazeCube = new Box(.2, .2, .2);
+                        mazeCube.setMaterial(bcMaterial);
+                        mazeCube.setTranslateX(characterY * 10);
+                        mazeCube.setTranslateY(-4.9);
+                        mazeCube.setTranslateZ(characterX * 10);
+                        mazeGroup.getChildren().add(mazeCube);
+                    }break;
+
+                }
+                else{
+                    if(event.getCode() == KeyCode.SPACE) {
+                        System.exit(0);
+                    }
                 }
             }
         });
@@ -215,6 +245,8 @@ public class Main extends Application {
             characterX++;
         else
             characterX--;
+        moveCount++;
+        moveCounter.setText("Moves: " + moveCount);
     }
     private void translateByY(double y, PerspectiveCamera camera){
         inAnimation = true;
@@ -231,6 +263,8 @@ public class Main extends Application {
             characterY++;
         else
             characterY--;
+        moveCount++;
+        moveCounter.setText("Moves: " + moveCount);
     }
 
     private void buildMaze() {
@@ -238,7 +272,7 @@ public class Main extends Application {
         redMaterial.setDiffuseColor(Color.DARKRED);
         redMaterial.setSpecularColor(Color.RED);
 
-        PhongMaterial wallMaterial = new PhongMaterial();
+        wallMaterial = new PhongMaterial();
         Image diffuseWallMap = new Image(new File("res/Cobblestone_1024_albedo.png").toURI().toString());
         Image normalWallMap = new Image(new File("res/Cobblestone_1024_normal.png").toURI().toString());
         Image roughnessWallMap = new Image(new File("res/Cobblestone_1024_roughness.png").toURI().toString());
@@ -329,7 +363,18 @@ public class Main extends Application {
                             gc.setFill(Color.RED);
                             gc.fillOval(i*blocksize, j*blocksize, blocksize, blocksize);
                         }
-                    }
+                }
+                }
+                gc.setFont(Font.font("Droid Sans", FontWeight.BOLD, 15));
+                if(resetGame) {
+                    //System.out.println("Win Maze.");
+                    resetGame = true;
+                    if(moveCount < (mazeList.length*mazeList[0].length)/3)
+                        gc.fillText("Great Job!\nMoves: " + moveCount,5,20);
+                    else
+                        gc.fillText("Great Perseverance!\nMoves: " + moveCount,5,20);
+                }else{
+                    gc.fillText("Moves: "+moveCount,5,20);
                 }
 
                 switch (characterR){
@@ -360,7 +405,16 @@ public class Main extends Application {
         //buildAxes();
         buildMaze();
 
-        scene3d = new Scene(root3d, 1024, 768, true);
+        AnchorPane globalRoot = new AnchorPane();
+        moveCounter = new Label("Moves: " + moveCount);
+        moveCounter.setStyle("-fx-font: 25px Tahoma;");
+        moveCounter.setTextFill(Color.GRAY);
+        scene3d = new Scene(globalRoot, 1024, 768, true);
+        SubScene sub = new SubScene(root3d, 1024, 768, true, SceneAntialiasing.BALANCED);
+        sub.setCamera(camera);
+        globalRoot.getChildren().add(sub);
+        globalRoot.getChildren().add(moveCounter);
+
         scene3d.setFill(Color.GREY);
         handleKeyboard(scene3d, world);
 
@@ -387,8 +441,6 @@ public class Main extends Application {
         primaryStage.setTitle("Maze Application");
         primaryStage.setScene(sceneMain);
         primaryStage.show();
-
-        scene3d.setCamera(camera);
     }
 
     public void ButtonClicked(ActionEvent e)
