@@ -1,0 +1,22 @@
+<component name="ArtifactManager">
+  <artifact type="javafx" name="MazeProject">
+    <output-path>$PROJECT_DIR$/out/artifacts/MazeProject</output-path>
+    <properties id="javafx-properties">
+      <options>
+        <option name="appClass" value="maze.Main" />
+        <option name="description" value="" />
+        <option name="height" value="768" />
+        <option name="htmlPlaceholderId" value="" />
+        <option name="title" value="ProjectLabyrinth" />
+        <option name="vendor" value="2A Studios (Kevin Sun)" />
+        <option name="version" value="0.0.1.00" />
+        <option name="width" value="1024" />
+      </options>
+    </properties>
+    <root id="root">
+      <element id="archive" name="MazeProject.jar">
+        <element id="module-output" name="MazeProject" />
+      </element>
+    </root>
+  </artifact>
+</component>
